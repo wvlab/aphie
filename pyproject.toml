@@ -1,0 +1,33 @@
+[project]
+name = "aphie"
+version = "0.0.1"
+description = "Pydantic to argparse"
+readme = "README.md"
+authors = [
+    {email = "me@wvlab.xyz"},
+]
+maintainers = [
+    {name="wvlab", email = "me@wvlab.xyz"},
+]
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.11",
+]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Framework :: Pydantic",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Typing :: Typed",
+]
+
+[project.urls]
+# Homepage = "https://example.com"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/wvlab/aphie"
+Issues = "https://github.com/wvlab/aphie/issues"
+Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
