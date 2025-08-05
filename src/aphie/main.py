@@ -3,9 +3,14 @@ import builtins
 import typing
 from collections.abc import Mapping, Sequence
 
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticBaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefinedType
+
+
+class BaseModel(PydanticBaseModel, validate_by_name=True):
+    pass
+
 
 type ActionModifiers = Mapping[type, type[argparse.Action]]
 
