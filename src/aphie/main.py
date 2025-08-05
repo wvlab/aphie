@@ -33,20 +33,20 @@ def add_model_to_parser(
     actions: ActionModifiers | None = None,
 ) -> None:
     for name, field in model.model_fields.items():
-        parser.add_argument(
-            *tuple(
-                flag
-                for flag in (
-                    f"--{name.replace('_', '-')}",
-                    field.alias and f"-{field.alias}",
-                )
-                if flag
-            ),
-            dest=name,
-            action=action_from_field_info(field, actions),
-            default=field.default,
-            required=isinstance(field.default, PydanticUndefinedType),
-        )
+        alias = field.alias and (f"-{field.alias}",) or tuple()
+
+        action = action_from_field_info(field, actions)
+        kwargs = {
+            "dest": name,
+            "action": action,
+            "default": field.default,
+            "required": isinstance(field.default, PydanticUndefinedType),
+        }
+
+        if action is argparse._StoreAction:
+            kwargs["type"] = field.annotation or str
+
+        parser.add_argument(f"--{name.replace('_', '-')}", *alias, **kwargs)
 
 
 def parser(
