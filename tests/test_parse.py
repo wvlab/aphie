@@ -1,6 +1,6 @@
 import unittest
 import argparse
-from aphie import parse, BaseModel, Field
+from aphie import parse, BaseModel, Field, Multiple
 
 
 class TestParseArgs(unittest.TestCase):
@@ -80,3 +80,32 @@ class TestParseArgs(unittest.TestCase):
 
         global_args, _ = parse(GlobalArgs, args=["-l", "10"])
         self.assertEqual(global_args.level, 10)
+
+    def test_multiple_strings(self):
+        class GlobalArgs(BaseModel):
+            files: Multiple[str]
+
+        args, _ = parse(GlobalArgs, args=["--files", "a.txt", "b.txt", "c.txt"])
+        self.assertEqual(args.files, ["a.txt", "b.txt", "c.txt"])
+
+    def test_multiple_ints(self):
+        class GlobalArgs(BaseModel):
+            numbers: Multiple[int]
+
+        args, _ = parse(GlobalArgs, args=["--numbers", "1", "2", "3"])
+        self.assertEqual(args.numbers, [1, 2, 3])
+        self.assertTrue(all(isinstance(x, int) for x in args.numbers))
+
+    def test_multiple_defaults_empty(self):
+        class GlobalArgs(BaseModel):
+            files: Multiple[str] = []
+
+        args, _ = parse(GlobalArgs, args=[])
+        self.assertEqual(args.files, [])
+
+    def test_multiple_occurrences_extend(self):
+        class GlobalArgs(BaseModel):
+            tags: Multiple[str]
+
+        args, _ = parse(GlobalArgs, args=["--tags", "a", "b", "--tags", "c"])
+        self.assertEqual(args.tags, ["a", "b", "c"])
