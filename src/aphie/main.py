@@ -1,9 +1,9 @@
 import argparse
-import builtins
 import types
 import typing
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Callable, Mapping, Sequence
+from types import NoneType, UnionType
+from typing import Any, TypeAliasType
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic.fields import FieldInfo
@@ -18,8 +18,10 @@ def optional_action(t: type) -> type[argparse.Action]:
             dest: str,
             **kwargs,
         ) -> None:
+            (it, n) = typing.get_args(t)
+            assert isinstance(n, NoneType) or issubclass(n, NoneType)
             kwargs["nargs"] = "?"
-            kwargs["type"] = t
+            kwargs["type"] = it
             super().__init__(
                 option_strings,
                 dest,
@@ -71,35 +73,37 @@ class BaseModel(PydanticBaseModel, validate_by_name=True):
     pass
 
 
-type ActionModifiers = Mapping[type, type[argparse.Action]]
+type ActionModifiers = Mapping[
+    type | TypeAliasType | UnionType, Callable[[type], type[argparse.Action]]
+]
 
 
 def action_from_field_info(
     field: FieldInfo, modifiers: ActionModifiers | None = None
 ) -> type[argparse.Action]:
-    annotation = (
-        typing.get_origin(field.annotation) or field.annotation,
-        typing.get_args(field.annotation),
+    mods = typing.cast(
+        ActionModifiers,
+        {
+            bool: lambda _: argparse.BooleanOptionalAction,
+            Multiple: lambda _: MultipleAction,
+        }
+        | dict(modifiers or {}),
     )
 
-    match annotation:
-        case (None, _):
-            raise ValueError("Field annotation cannot be None")
+    assert field.annotation is not None
+    if field.annotation in mods:
+        return mods[field.annotation](field.annotation)
 
-        case (t, _) if modifiers is not None and t in modifiers:
-            return modifiers[t]
+    origin = typing.get_origin(field.annotation)
+    targs = typing.get_args(field.annotation)
+    match (origin, targs):
+        case (t, _) if t in mods and t is not None:
+            return mods[t](field.annotation or t)
 
-        case (builtins.bool, ()):
-            return argparse.BooleanOptionalAction
+        case (types.UnionType | typing.Union, (_, types.NoneType)):
+            return optional_action(field.annotation)
 
-        case (types.UnionType | typing.Union, (ta, types.NoneType)):
-            return optional_action(ta)
-
-        case (t, (_,)) if t is Multiple:
-            return MultipleAction
-
-        case _:
-            return argparse._StoreAction
+    return argparse._StoreAction
 
 
 def add_model_to_parser(
@@ -108,7 +112,7 @@ def add_model_to_parser(
     actions: ActionModifiers | None = None,
 ) -> None:
     for name, field in model.model_fields.items():
-        alias = field.alias and (f"-{field.alias}",) or tuple()
+        alias = (f"-{field.alias}",) if field.alias is not None else tuple()
 
         action = action_from_field_info(field, actions)
         kwargs = {

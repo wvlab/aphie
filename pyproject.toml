@@ -1,6 +1,6 @@
 [project]
 name = "aphie"
-version = "0.0.1"
+version = "0.0.2"
 description = "Pydantic to argparse"
 readme = "README.md"
 authors = [
@@ -31,3 +31,8 @@ classifiers = [
 Repository = "https://github.com/wvlab/aphie"
 Issues = "https://github.com/wvlab/aphie/issues"
 Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "pyright==1.1.403",
+]
