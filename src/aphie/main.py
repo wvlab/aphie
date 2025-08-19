@@ -1,18 +1,57 @@
 import argparse
 import builtins
+import types
 import typing
-from typing import Any, TypeAliasType
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefinedType
 
 
+def optional_action(t: type) -> type[argparse.Action]:
+    class aux(argparse.Action):
+        def __init__(
+            self,
+            option_strings: Sequence[str],
+            dest: str,
+            **kwargs,
+        ) -> None:
+            kwargs["nargs"] = "?"
+            kwargs["type"] = t
+            super().__init__(
+                option_strings,
+                dest,
+                **kwargs,
+            )
+
+        def __call__(
+            self,
+            parser: argparse.ArgumentParser,
+            namespace: argparse.Namespace,
+            values: str | Sequence[Any] | None,
+            option_string: str | None = None,
+        ) -> None:
+            _ = (parser, option_string)
+            setattr(namespace, self.dest, values)
+
+    return aux
+
+
 class MultipleAction(argparse.Action):
-    def __init__(self, option_strings, dest, **kwargs):
-        kwargs.setdefault("nargs", "+")
-        super().__init__(option_strings, dest, **kwargs)
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str,
+        **kwargs,
+    ) -> None:
+        kwargs["nargs"] = "+"
+        super().__init__(
+            option_strings,
+            dest,
+            **kwargs,
+        )
 
     def __call__(self, parser, namespace, values, option_string=None):
         _ = (parser, option_string)
@@ -53,7 +92,10 @@ def action_from_field_info(
         case (builtins.bool, ()):
             return argparse.BooleanOptionalAction
 
-        case (t, (_)) if t == Multiple:
+        case (types.UnionType | typing.Union, (ta, types.NoneType)):
+            return optional_action(ta)
+
+        case (t, (_,)) if t is Multiple:
             return MultipleAction
 
         case _:

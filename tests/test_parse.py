@@ -1,6 +1,7 @@
 import unittest
 import argparse
 from aphie import parse, BaseModel, Field, Multiple
+from pathlib import Path
 
 
 class TestParseArgs(unittest.TestCase):
@@ -109,3 +110,20 @@ class TestParseArgs(unittest.TestCase):
 
         args, _ = parse(GlobalArgs, args=["--tags", "a", "b", "--tags", "c"])
         self.assertEqual(args.tags, ["a", "b", "c"])
+
+    def test_optional_alias(self):
+        class GlobalArgs(BaseModel):
+            string: str | None = Field(None, alias="s")
+
+        global_args, _ = parse(GlobalArgs, args=["--string", "string"])
+        self.assertEqual(global_args.string, "string")
+
+    def test_optional_path(self):
+        class GlobalArgs(BaseModel):
+            path: Path | None = Field(None, alias="p")
+
+        args, _ = parse(GlobalArgs, args=["-p", "/tmp/test"])
+        self.assertEqual(args.path, Path("/tmp/test"))
+
+        args, _ = parse(GlobalArgs, args=[])
+        self.assertIsNone(args.path)
